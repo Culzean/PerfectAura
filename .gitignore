@@ -1,0 +1,100 @@
+# OSX
+.DS_Store
+.AppleDouble
+.LSOverride
+*.iml
+
+# Thumbnails
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.lnk
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Lockfiles - uncomment if not using a specific package manager
+# package-lock.json
+# yarn.lock
+
+# Bundle artifacts
+*.jsbundle
+*.bundle
+
+# Env files
+.env
+.env.local
+.env.development
+.env.production
+
+# React Native
+.expo/
+__generated__/
+
+# Metro
+.metro-health-check*
+
+# Android
+android/app/build/
+android/app/debug/
+android/app/release/
+android/.gradle/
+android/build/
+android/captures/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# iOS
+ios/Pods/
+ios/build/
+ios/DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/
+*.hmap
+*.ipa
+*.mobileprovision
+
+# CocoaPods
+ios/Podfile.lock
+
+# Xcode
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+project.xcworkspace/
+xcuserdata/
+
+# Buck
+buck-out/
+\.buckd/
+*.keystore
+!debug.keystore
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Testing
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Temporary files
+*.swp
+*.swo
+*~
