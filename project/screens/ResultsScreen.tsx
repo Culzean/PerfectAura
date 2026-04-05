@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollView, Image } from 'react-native';
 import { YStack, XStack, Text, Button, Separator } from 'tamagui';
 import {
@@ -6,7 +6,6 @@ import {
   Trash2,
   Sparkles,
   MessageSquare,
-  ImageOff,
   RotateCcw,
   ArrowLeft,
 } from 'lucide-react-native';
@@ -15,20 +14,67 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useSession } from '../context/SessionContext';
 import { colors } from '../constants/colors';
+import { generateAfterImage } from '../services/imageGeneration';
+import ResultCard from '../components/ResultCard';
+import type { ImageGenStatus } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Results'>;
 
 export default function ResultsScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { deleteConsultation, resetInput } = useSession();
+  const { deleteConsultation, resetInput, updateConsultation } = useSession();
   const { consultation, origin } = route.params;
   const { recommendation } = consultation;
 
+  const [imageStatus, setImageStatus] = useState<ImageGenStatus>(
+    consultation.afterImageUrl ? 'succeeded' : 'idle'
+  );
+  const [imageUrl, setImageUrl] = useState<string | undefined>(consultation.afterImageUrl);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const runGeneration = useCallback(async () => {
+    if (!consultation.input.currentPhotos.length) return;
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setImageStatus('generating');
+
+    const result = await generateAfterImage(
+      consultation.input.currentPhotos[0].uri,
+      recommendation,
+      controller.signal,
+      consultation.id
+    );
+
+    if (controller.signal.aborted) return;
+
+    if (result) {
+      setImageUrl(result);
+      setImageStatus('succeeded');
+      updateConsultation(consultation.id, { afterImageUrl: result });
+    } else {
+      setImageStatus('failed');
+    }
+  }, [consultation.id, consultation.input.currentPhotos, recommendation, updateConsultation]);
+
+  useEffect(() => {
+    if (consultation.afterImageUrl) return;
+    runGeneration();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, [consultation.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleRetryImage = useCallback(() => {
+    abortControllerRef.current?.abort();
+    runGeneration();
+  }, [runGeneration]);
+
   const handleBack = () => {
     if (origin === 'fresh') {
-      navigation.goBack();
+      navigation.navigate('Input');
     } else {
-      navigation.goBack();
+      navigation.navigate('History');
     }
   };
 
@@ -100,27 +146,11 @@ export default function ResultsScreen({ navigation, route }: Props) {
             borderWidth={1}
             borderColor={colors.border}
           >
-            <YStack
-              height={220}
-              backgroundColor="#E8F5F3"
-              alignItems="center"
-              justifyContent="center"
-              gap={12}
-            >
-              <YStack
-                width={64}
-                height={64}
-                borderRadius={32}
-                backgroundColor="rgba(15, 118, 110, 0.1)"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <ImageOff size={28} color={colors.primaryLight} />
-              </YStack>
-              <Text fontSize={13} color={colors.textTertiary} fontWeight="500">
-                AI preview coming soon
-              </Text>
-            </YStack>
+            <ResultCard
+              afterImageUrl={imageUrl}
+              status={imageStatus}
+              onRetry={handleRetryImage}
+            />
 
             <YStack padding={20} gap={4}>
               <Text fontSize={12} fontWeight="600" color={colors.primaryLight} letterSpacing={1}>

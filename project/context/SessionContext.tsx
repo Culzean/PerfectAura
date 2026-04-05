@@ -13,6 +13,7 @@ interface SessionContextType {
   consultations: Consultation[];
   addConsultation: (consultation: Consultation) => void;
   deleteConsultation: (id: string) => void;
+  updateConsultation: (id: string, updates: Partial<Consultation>) => void;
   resetInput: () => void;
 }
 
@@ -31,6 +32,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const deleteConsultation = useCallback((id: string) => {
     setConsultations((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  const updateConsultation = useCallback((id: string, updates: Partial<Consultation>) => {
+    setConsultations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
+    );
   }, []);
 
   const resetInput = useCallback(() => {
@@ -53,6 +60,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         consultations,
         addConsultation,
         deleteConsultation,
+        updateConsultation,
         resetInput,
       }}
     >

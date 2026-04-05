@@ -1,12 +1,26 @@
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import { ANTHROPIC_API_KEY } from '../config/env';
+import { HAIR_ADVISOR_SYSTEM_PROMPT } from '../config/prompts';
 import type { HairAdvisorInput, HairRecommendation, PhotoAsset } from '../types';
 
-async function photoToBase64(photo: PhotoAsset): Promise<string> {
-  const base64 = await FileSystem.readAsStringAsync(photo.uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  return base64;
+function getMediaType(uri: string): 'image/jpeg' | 'image/png' | 'image/webp' {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'jpg':
+    case 'jpeg':
+    default:
+      return 'image/jpeg';
+  }
+}
+
+async function photoToBase64(photo: PhotoAsset): Promise<{ base64: string; mediaType: string }> {
+  const file = new File(photo.uri);
+  const base64 = await file.base64();
+  return { base64, mediaType: getMediaType(photo.uri) };
 }
 
 export async function getHairRecommendation(
@@ -23,26 +37,26 @@ export async function getHairRecommendation(
   > = [];
 
   for (let i = 0; i < input.currentPhotos.length; i++) {
-    const base64 = await photoToBase64(input.currentPhotos[i]);
+    const { base64, mediaType } = await photoToBase64(input.currentPhotos[i]);
     contentBlocks.push({
       type: 'text',
       text: `Current hair photo ${i + 1}:`,
     });
     contentBlocks.push({
       type: 'image',
-      source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+      source: { type: 'base64', media_type: mediaType, data: base64 },
     });
   }
 
   for (let i = 0; i < input.referencePhotos.length; i++) {
-    const base64 = await photoToBase64(input.referencePhotos[i]);
+    const { base64, mediaType } = await photoToBase64(input.referencePhotos[i]);
     contentBlocks.push({
       type: 'text',
       text: `Reference/inspiration photo ${i + 1}:`,
     });
     contentBlocks.push({
       type: 'image',
-      source: { type: 'base64', media_type: 'image/jpeg', data: base64 },
+      source: { type: 'base64', media_type: mediaType, data: base64 },
     });
   }
 
@@ -68,8 +82,7 @@ export async function getHairRecommendation(
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system:
-        'You are a professional hair consultant. Analyse the user\'s current hair from their photos, consider any reference styles they have provided, and read their notes carefully. Respond with a JSON object only. No preamble, no markdown, no explanation outside the JSON. Structure: { cutName, reasoning, addressesFrustrations, salonScript } \u2014 each a string.',
+      system: HAIR_ADVISOR_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: contentBlocks }],
     }),
   });
