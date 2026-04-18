@@ -7,7 +7,7 @@ import AppNavigator from '../navigation/AppNavigator';
 
 export default function App() {
   return (
-    <TamaguiProvider config={tamaguiConfig}>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
       <SessionProvider>
         <NavigationIndependentTree>
           <AppNavigator />

@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:replicate.com)"
+      "WebFetch(domain:replicate.com)",
+      "WebSearch",
+      "WebFetch(domain:tamagui.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

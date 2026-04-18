@@ -1,5 +1,4 @@
 import { Paths, File, Directory } from 'expo-file-system';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { REPLICATE_API_KEY } from '../../config/env';
 import { buildImagePrompt } from '../../config/prompts';
 import type { HairRecommendation } from '../../types';
@@ -7,13 +6,17 @@ import type { HairRecommendation } from '../../types';
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLL_ATTEMPTS = 40; // ~60 seconds total
 
-async function compressPhoto(uri: string): Promise<string> {
-  const result = await manipulateAsync(
-    uri,
-    [{ resize: { width: 1024 } }],
-    { format: SaveFormat.JPEG, compress: 0.7, base64: true }
-  );
-  return `data:image/jpeg;base64,${result.base64}`;
+function getMediaType(uri: string): string {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+async function photoToDataUri(uri: string): Promise<string> {
+  const file = new File(uri);
+  const base64 = await file.base64();
+  return `data:${getMediaType(uri)};base64,${base64}`;
 }
 
 async function pollPrediction(
@@ -74,7 +77,7 @@ export async function generateAfterImage(
   }
 
   try {
-    const inputImage = await compressPhoto(photoUri);
+    const inputImage = await photoToDataUri(photoUri);
 
     if (signal?.aborted) return null;
 
