@@ -113,7 +113,7 @@ export async function generateAfterImage(
   let response: Response;
   try {
     response = await fetch(
-      'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-dev/predictions',
+      'https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions',
       {
         method: 'POST',
         headers: {
