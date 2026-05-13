@@ -9,6 +9,7 @@ interface ResultCardProps {
   afterImageUrl?: string;
   status: ImageGenStatus;
   onRetry?: () => void;
+  errorMessage?: string;
 }
 
 function PulsingBackground({ children }: { children: React.ReactNode }) {
@@ -32,9 +33,9 @@ function PulsingBackground({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ResultCard({ afterImageUrl, status, onRetry }: ResultCardProps) {
-  const [imageError, setImageError] = useState(false);
-  const effectiveStatus = imageError ? 'failed' : status;
+export default function ResultCard({ afterImageUrl, status, onRetry, errorMessage }: ResultCardProps) {
+  const [loadError, setLoadError] = useState(false);
+  const effectiveStatus = loadError ? 'failed' : status;
 
   if (effectiveStatus === 'generating') {
     return (
@@ -58,7 +59,7 @@ export default function ResultCard({ afterImageUrl, status, onRetry }: ResultCar
           source={{ uri: afterImageUrl }}
           style={{ width: '100%', height: 220 }}
           resizeMode="cover"
-          onError={() => setImageError(true)}
+          onError={() => setLoadError(true)}
         />
         <YStack position="absolute" bottom={8} right={8}>
           <Text
@@ -84,7 +85,8 @@ export default function ResultCard({ afterImageUrl, status, onRetry }: ResultCar
       backgroundColor="#E8F5F3"
       alignItems="center"
       justifyContent="center"
-      gap={12}
+      gap={10}
+      padding={16}
     >
       <YStack
         width={64}
@@ -99,6 +101,16 @@ export default function ResultCard({ afterImageUrl, status, onRetry }: ResultCar
       <Text fontSize={13} color={colors.textTertiary} fontWeight="500">
         {effectiveStatus === 'failed' ? 'Preview unavailable' : 'AI preview'}
       </Text>
+      {effectiveStatus === 'failed' && errorMessage && (
+        <Text
+          fontSize={11}
+          color={colors.danger}
+          textAlign="center"
+          numberOfLines={3}
+        >
+          {errorMessage}
+        </Text>
+      )}
       {effectiveStatus === 'failed' && onRetry && (
         <Button
           size="$2"

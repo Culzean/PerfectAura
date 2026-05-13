@@ -21,6 +21,8 @@ export interface HairRecommendation {
   reasoning: string;
   addressesFrustrations: string;
   salonScript: string;
+  hairColour: string;
+  visualDescription: string;
 }
 
 export interface Consultation {

@@ -345,6 +345,15 @@ Not in Phase 1 scope. Build after recommendation flow is solid and tested.
 
 **Note on expectations:** Results are illustrative, not photorealistic. Reflect this in UI copy near the image.
 
+**Current implementation:** Flux Kontext Dev (img2img, no mask). Prompt uses a `visualDescription` field from the Claude recommendation rather than salon jargon.
+
+**Quality improvement path — Inpainting:**
+The current approach edits the full image which can produce "wig-like" results. A better pipeline would:
+1. Use a hair segmentation model (SAM or hair-specific) to generate a mask of the hair region
+2. Use an inpainting model (SDXL Inpainting or Flux Fill) with the mask so face/body pixels are never touched
+3. This is a two-API-call pipeline but should eliminate unnatural hair placement
+Evaluate when current prompt-only improvements plateau.
+
 ---
 
 ## Environment Variables

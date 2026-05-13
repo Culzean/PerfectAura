@@ -4,7 +4,9 @@ export interface ImageGenerationProvider {
   generateAfterImage(
     photoUri: string,
     recommendation: HairRecommendation,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    consultationId?: string,
+    base64?: string
   ): Promise<string | null>;
 }
 

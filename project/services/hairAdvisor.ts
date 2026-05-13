@@ -3,24 +3,26 @@ import { ANTHROPIC_API_KEY } from '../config/env';
 import { HAIR_ADVISOR_SYSTEM_PROMPT } from '../config/prompts';
 import type { HairAdvisorInput, HairRecommendation, PhotoAsset } from '../types';
 
-function getMediaType(uri: string): 'image/jpeg' | 'image/png' | 'image/webp' {
-  const ext = uri.split('.').pop()?.toLowerCase();
-  switch (ext) {
-    case 'png':
-      return 'image/png';
-    case 'webp':
-      return 'image/webp';
-    case 'jpg':
-    case 'jpeg':
-    default:
-      return 'image/jpeg';
-  }
+const REQUEST_TIMEOUT_MS = 60_000;
+
+function detectMediaType(base64: string): 'image/jpeg' | 'image/png' | 'image/webp' {
+  if (base64.startsWith('/9j/')) return 'image/jpeg';
+  if (base64.startsWith('iVBOR')) return 'image/png';
+  if (base64.startsWith('UklGR')) return 'image/webp';
+  return 'image/jpeg';
 }
 
 async function photoToBase64(photo: PhotoAsset): Promise<{ base64: string; mediaType: string }> {
-  const file = new File(photo.uri);
-  const base64 = await file.base64();
-  return { base64, mediaType: getMediaType(photo.uri) };
+  let base64: string;
+
+  if (photo.base64) {
+    base64 = photo.base64;
+  } else {
+    const file = new File(photo.uri);
+    base64 = await file.base64();
+  }
+
+  return { base64, mediaType: detectMediaType(base64) };
 }
 
 export async function getHairRecommendation(
@@ -72,20 +74,34 @@ export async function getHairRecommendation(
     });
   }
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: HAIR_ADVISOR_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: contentBlocks }],
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: HAIR_ADVISOR_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: contentBlocks }],
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw err;
+  }
+  clearTimeout(timeout);
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -100,12 +116,21 @@ export async function getHairRecommendation(
     .replace(/```\s*/g, '')
     .trim();
 
-  const parsed = JSON.parse(cleaned);
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error(
+      'The AI returned an unexpected response format. Please try again.'
+    );
+  }
 
   return {
-    cutName: parsed.cutName,
-    reasoning: parsed.reasoning,
-    addressesFrustrations: parsed.addressesFrustrations,
-    salonScript: parsed.salonScript,
+    cutName: String(parsed.cutName ?? ''),
+    reasoning: String(parsed.reasoning ?? ''),
+    addressesFrustrations: String(parsed.addressesFrustrations ?? ''),
+    salonScript: String(parsed.salonScript ?? ''),
+    hairColour: String(parsed.hairColour ?? ''),
+    visualDescription: String(parsed.visualDescription ?? ''),
   };
 }

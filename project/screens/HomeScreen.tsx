@@ -1,19 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform, KeyboardAvoidingView } from 'react-native';
 import { YStack, XStack, Text, Input, Button, Separator } from 'tamagui';
-import { Scissors, Clock, ChevronRight } from 'lucide-react-native';
+import { Scissors, Clock, ChevronRight, Zap } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useSession } from '../context/SessionContext';
 import { colors } from '../constants/colors';
+import { DEV_PREFILL, DEV_TEST_DATA } from '../config/dev';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { userName, setUserName, consultations } = useSession();
+  const { userName, setUserName, setNotes, consultations } = useSession();
   const hasHistory = consultations.length > 0;
+
+  useEffect(() => {
+    if (DEV_PREFILL && !userName) {
+      setUserName(DEV_TEST_DATA.userName);
+      setNotes(DEV_TEST_DATA.notes);
+    }
+  }, []);
 
   return (
     <KeyboardAvoidingView
@@ -96,6 +104,25 @@ export default function HomeScreen({ navigation }: Props) {
                 <ChevronRight size={18} color="#FFFFFF" />
               </XStack>
             </Button>
+
+            {DEV_PREFILL && (
+              <Button
+                size="$4"
+                backgroundColor="#FEF3C7"
+                borderWidth={1}
+                borderColor="#F59E0B"
+                pressStyle={{ backgroundColor: "#FDE68A", scale: 0.98 }}
+                borderRadius={14}
+                onPress={() => navigation.navigate('Input')}
+              >
+                <XStack alignItems="center" gap={8}>
+                  <Zap size={16} color="#D97706" />
+                  <Text color="#92400E" fontSize={14} fontWeight="600">
+                    Quick Test (pick photo + submit)
+                  </Text>
+                </XStack>
+              </Button>
+            )}
           </YStack>
 
           <Button

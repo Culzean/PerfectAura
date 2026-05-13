@@ -32,9 +32,8 @@ export default function ReferenceSection({
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: remaining,
-      quality: 0.8,
+      quality: 0.7,
+      base64: true,
     });
 
     if (result.canceled) return;
@@ -43,6 +42,7 @@ export default function ReferenceSection({
       uri: a.uri,
       width: a.width,
       height: a.height,
+      base64: a.base64 ?? undefined,
       source: 'gallery' as const,
     }));
 

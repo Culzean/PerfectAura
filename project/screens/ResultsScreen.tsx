@@ -30,6 +30,7 @@ export default function ResultsScreen({ navigation, route }: Props) {
     consultation.afterImageUrl ? 'succeeded' : 'idle'
   );
   const [imageUrl, setImageUrl] = useState<string | undefined>(consultation.afterImageUrl);
+  const [imageError, setImageError] = useState<string | undefined>();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const runGeneration = useCallback(async () => {
@@ -38,21 +39,34 @@ export default function ResultsScreen({ navigation, route }: Props) {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setImageStatus('generating');
+    setImageError(undefined);
 
-    const result = await generateAfterImage(
-      consultation.input.currentPhotos[0].uri,
-      recommendation,
-      controller.signal,
-      consultation.id
-    );
+    try {
+      const firstPhoto = consultation.input.currentPhotos[0];
+      const result = await generateAfterImage(
+        firstPhoto.uri,
+        recommendation,
+        controller.signal,
+        consultation.id,
+        firstPhoto.base64
+      );
 
-    if (controller.signal.aborted) return;
+      if (controller.signal.aborted) return;
 
-    if (result) {
-      setImageUrl(result);
-      setImageStatus('succeeded');
-      updateConsultation(consultation.id, { afterImageUrl: result });
-    } else {
+      if (result) {
+        setImageUrl(result);
+        setImageStatus('succeeded');
+        updateConsultation(consultation.id, { afterImageUrl: result });
+      } else {
+        // null return means aborted
+        setImageStatus('idle');
+      }
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      if (err instanceof Error && err.name === 'AbortError') return;
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[image-gen]', message);
+      setImageError(message);
       setImageStatus('failed');
     }
   }, [consultation.id, consultation.input.currentPhotos, recommendation, updateConsultation]);
@@ -150,6 +164,7 @@ export default function ResultsScreen({ navigation, route }: Props) {
               afterImageUrl={imageUrl}
               status={imageStatus}
               onRetry={handleRetryImage}
+              errorMessage={imageError}
             />
 
             <YStack padding={20} gap={4}>
